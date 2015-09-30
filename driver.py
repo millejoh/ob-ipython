@@ -1,5 +1,9 @@
-from IPython.lib.kernel import find_connection_file
-import IPython.kernel.blocking.client as client
+try:                            # Jupyter and IPython >= 4.0
+    import jupyter_client as client
+    find_connection_file = client.find_connection_file
+except ImportError:             # IPython 3
+    from IPython.lib.kernel import find_connection_file
+    import IPython.kernel.blocking.client as client
 
 import sys
 import threading

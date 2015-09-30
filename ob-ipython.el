@@ -50,6 +50,10 @@
 (defcustom ob-ipython-driver-port 9988
   "Port to use for http driver."
   :group 'ob-ipython)
+  
+(defcustom ob-ipython-driver-hostname "localhost"
+  "Hostname to use for http driver."
+  :group 'ob-ipython)
 
 (defcustom ob-ipython-driver-path
   (f-expand "./driver.py"
@@ -125,7 +129,7 @@
   (apply 'start-process name (format "*ob-ipython-%s*" name) (car cmd) (cdr cmd)))
 
 (defun ob-ipython--create-kernel (name)
-  (when (not (process-live-p (get-process (format "kernel-%s" name))))
+  (when (not (ignore-errors (process-live-p (get-process (format "kernel-%s" name)))))
     (ob-ipython--create-process (format "kernel-%s" name) (ob-ipython--kernel-cmd name))))
 
 (defun ob-ipython--get-kernel-processes ()
@@ -138,7 +142,7 @@
           procs)))
 
 (defun ob-ipython--create-driver ()
-  (when (not (process-live-p (ob-ipython--get-driver-process)))
+  (when (not (ignore-errors (process-live-p (ob-ipython--get-driver-process))))
     (ob-ipython--create-process "ob-ipython-driver"
                                 (list (locate-file (if (eq system-type 'windows-nt) "python.exe" "python")
                                                    exec-path)
@@ -187,7 +191,10 @@ a new kernel will be started."
   (let ((url-request-data code)
         (url-request-method "POST"))
     (with-current-buffer (url-retrieve-synchronously
-                          (format "http://localhost:%d/execute/%s" ob-ipython-driver-port name))
+                          (format "http://%s:%d/execute/%s" 
+                            ob-ipython-driver-hostname
+                            ob-ipython-driver-port
+                            name))
       (if (>= (url-http-parse-response) 400)
     (ob-ipython--dump-error (buffer-string))
   (goto-char url-http-end-of-headers)
@@ -246,7 +253,9 @@ a new kernel will be started."
         (url-request-method "POST"))
     (with-current-buffer (url-retrieve-synchronously
                           ;; TODO: hardcoded the default session here
-                          (format "http://localhost:%d/inspect/default" ob-ipython-driver-port))
+                          (format "http://%s:%d/inspect/default"
+                            ob-ipython-driver-hostname
+                            ob-ipython-driver-port))
       (if (>= (url-http-parse-response) 400)
           (ob-ipython--dump-error (buffer-string))
         (goto-char url-http-end-of-headers)
